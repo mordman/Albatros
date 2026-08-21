@@ -9,6 +9,7 @@ import { makeWhale, makeFishSchool, makeJelly, makeTurtle, makeRay, makeCrab,
          makeWreck, makeWeedPatch, makeKelp, makeMegalodon } from './creatures.js';
 import { makeBalloon, makeBuoy, makeCloud } from './misc.js';
 import { makeArch } from './arch.js';
+import { makePedestrianGroup } from './pedestrians.js';
 
 const names = a => { const s=[...a]; return ()=> s.length? s.splice(Math.floor(Math.random()*s.length),1)[0] : a[0]; };
 const nextShip = names(['Веста','Заря','Аврора','Морж','Селена','Бриз','Тайфун','Поллукс','Нептун','Чайка']);
@@ -31,6 +32,7 @@ const nextWreck = names(['Левиафан','Мария','Атлант','Сир�
   const c = makeCityIsland('Порт-Ветров', Math.atan2(850, -1650));
   c.group.position.set(-850, 0, 1650);
   world.islands.push(c); world.entities.push(c);
+  makePedestrianGroup(c, 15);
 }
 for(let i=0;i<2;i++){ const s=makeSchooner(nextShip()); placeAhead(s.point,1200,2600,2.4); s.heading=rnd(0,6.28); world.ships.push(s); world.entities.push(s); }
 for(let i=0;i<3;i++){ const s=makeTrawler(nextShip()); placeAhead(s.point,1200,2600,2.4); s.heading=rnd(0,6.28); world.ships.push(s); world.entities.push(s); }
@@ -40,6 +42,7 @@ for(let i=0;i<2;i++){
   const c = makeCityIsland(nextCity());
   placeAhead(c.point, 1800, 3200, 2.6, world.islands);
   world.islands.push(c); world.entities.push(c);
+  makePedestrianGroup(c, 12 + Math.floor(rnd(0, 8)));
 }
 {
   const w = makeWhale(); w.point.set(-420, 0, 700); w.timer = 1.6;

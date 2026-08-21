@@ -142,6 +142,15 @@ function islandCollision(P, PR){
       }
     }
   }
+  // Проверка коллизий со зданиями и объектами города
+  for(const b of world.buildings || []){
+    if(!b.box) continue;
+    const dx = Math.abs(P.x - b.box.cx);
+    const dz = Math.abs(P.z - b.box.cz);
+    const dy = Math.abs(P.y - b.box.cy);
+    if(dx < b.box.hw + PR && dz < b.box.hd + PR && dy < b.box.hh + PR)
+      return 'столкновение со зданием';
+  }
   return null;
 }
 
