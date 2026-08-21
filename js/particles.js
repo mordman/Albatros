@@ -104,22 +104,3 @@ export function explosion(x,y,z){
       life:rnd(.5,1.1), s0:.5, s1:.15, r:1, g:.85, b:.3, a:1, grav:-28 });
   }
 }
-
-// Blood splatter effect for pedestrian hits
-export function bloodSplatter(x,y,z,intensity=1){
-  for(let i=0;i<15*intensity;i++){
-    const a=rnd(0,6.28), sp=rnd(3,12)*intensity;
-    particles.spawn(x,y,z,{
-      vx:Math.cos(a)*sp*rnd(0.3,1), vy:rnd(2,8)*intensity, vz:Math.sin(a)*sp*rnd(0.3,1),
-      life:rnd(0.6,1.4), s0:rnd(0.3,0.8), s1:rnd(0.1,0.3),
-      r:0.75, g:0.15, b:0.15, a:0.85, grav:-18, drag:0.8 });
-  }
-}
-
-// Bullet tracer effect
-export function bulletTracer(x,y,z,vx,vy,vz){
-  particles.spawn(x,y,z,{
-    vx:vx, vy:vy, vz:vz,
-    life:0.08, s0:0.8, s1:0.2,
-    r:1, g:0.95, b:0.6, a:0.9, grav:0, drag:0 });
-}
