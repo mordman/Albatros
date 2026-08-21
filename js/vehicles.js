@@ -397,16 +397,24 @@ export const MG = motoG.userData;
 {
   const wheel = ()=>{
     const w = new THREE.Group();
-    w.add(new THREE.Mesh(new THREE.TorusGeometry(0.30, 0.09, 8, 20), M.rubber));
-    w.add(new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.03, 6, 16), M.motoChrome));
+    // шина: тор повёрнут так, чтобы ось колеса была вдоль X (влево-вправо)
+    const tireGeo = new THREE.TorusGeometry(0.30, 0.09, 8, 20);
+    tireGeo.rotateY(Math.PI/2);
+    w.add(new THREE.Mesh(tireGeo, M.rubber));
+    // обод
+    const rimGeo = new THREE.TorusGeometry(0.22, 0.03, 6, 16);
+    rimGeo.rotateY(Math.PI/2);
+    w.add(new THREE.Mesh(rimGeo, M.motoChrome));
+    // спицы: стержни вдоль Y, веером в плоскости YZ (вращаем вокруг оси X)
     for(let i=0;i<4;i++){
       const sp = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.42, 0.02), M.motoChrome);
-      sp.rotation.z = i*Math.PI/4;
+      sp.rotation.x = i*Math.PI/4;
       w.add(sp);
     }
-    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.14,8), M.motoChrome);
-    hub.rotation.z = Math.PI/2;
-    w.add(hub);
+    // ступица: цилиндр по умолчанию вдоль Y — кладём вдоль X
+    const hubGeo = new THREE.CylinderGeometry(0.05,0.05,0.14,8);
+    hubGeo.rotateZ(Math.PI/2);
+    w.add(new THREE.Mesh(hubGeo, M.motoChrome));
     return w;
   };
   MG.wheelR = wheel(); MG.wheelR.position.set(0, 0.33, -0.72); motoG.add(MG.wheelR);
