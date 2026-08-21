@@ -1,11 +1,9 @@
 import * as THREE from 'three';
 import { M, CITY_MATS, CITY_ROOF } from './materials.js';
-import { colBox } from './helpers.js';
 
 export function makeBuilding(w, h, d, plainMat){
-  const g = new THREE.Group();
-  const geo = new THREE.BoxGeometry(w, h, d);
-  const uv = geo.attributes.uv;
+  const g = new THREE.BoxGeometry(w, h, d);
+  const uv = g.attributes.uv;
   const dims = [[d,h],[d,h],[w,d],[w,d],[w,h],[w,h]];
   for(let f=0; f<6; f++){
     const [su, sv] = dims[f];
@@ -15,12 +13,7 @@ export function makeBuilding(w, h, d, plainMat){
       uv.setXY(i, uv.getX(i)*ru, uv.getY(i)*rv);
   }
   const side = plainMat || CITY_MATS[Math.floor(Math.random()*CITY_MATS.length)];
-  const mesh = new THREE.Mesh(geo, [side, side, CITY_ROOF, CITY_ROOF, side, side]);
-  mesh.position.y = h/2;
-  g.add(mesh);
-  colBox(g, w, h, d, 0, h/2, 0);
-  g.userData.isBuilding = true;
-  return g;
+  return new THREE.Mesh(g, [side, side, CITY_ROOF, CITY_ROOF, side, side]);
 }
 export function hipRoof(w, d, h, m){
   const geo = new THREE.ConeGeometry(1, 1, 4);
@@ -32,21 +25,19 @@ export function hipRoof(w, d, h, m){
 export function makeHouse(w, h, d){
   const g = new THREE.Group();
   const b = makeBuilding(w, h, d);
-  b.position.y = 0; g.add(b);
+  b.position.y = h/2; g.add(b);
   const rh = h*0.55;
   const roof = hipRoof(w, d, rh, M.roofTile);
   roof.position.y = h + rh/2 - 0.1; g.add(roof);
   const chim = new THREE.Mesh(new THREE.BoxGeometry(0.7,1.6,0.7), M.cream);
   chim.position.set(w*0.28, h + 0.7, d*0.2); g.add(chim);
-  colBox(g, w, h+rh, d, 0, (h+rh)/2, 0);
-  g.userData.isHouse = true;
   return g;
 }
 export function makeChurch(){
   const g = new THREE.Group();
   const nave = makeBuilding(6, 7.5, 14, M.cream);
-  nave.position.y = 0; g.add(nave);
-  const roof = hipRoof(6.6, 14.6, 3, M.roofTile); roof.position.y = 7.5 + 3/2 - 0.1; g.add(roof);
+  nave.position.y = 3.75; g.add(nave);
+  const roof = hipRoof(6.6, 14.6, 3, M.roofTile); roof.position.y = 9; g.add(roof);
   for(const s of [-1,1]){
     const strip = new THREE.Mesh(new THREE.BoxGeometry(0.15, 3.2, 9), M.glass);
     strip.position.set(s*3.05, 4.6, 0); g.add(strip);
@@ -60,8 +51,6 @@ export function makeChurch(){
   crossV.position.set(0, 25.2, 8.5); g.add(crossV);
   const crossH = new THREE.Mesh(new THREE.BoxGeometry(1.2,0.22,0.22), M.dark);
   crossH.position.set(0, 25.6, 8.5); g.add(crossH);
-  colBox(g, 10, 28, 18, 0, 14, 0);
-  g.userData.isChurch = true;
   return g;
 }
 export function makeWaterTower(){
@@ -75,8 +64,6 @@ export function makeWaterTower(){
   const tank = new THREE.Mesh(new THREE.CylinderGeometry(2.6,2.6,3.4,14), M.steel);
   tank.position.y = 11.5; g.add(tank);
   const cap = hipRoof(5.4, 5.4, 1.8, M.roofTile); cap.position.y = 14.1; g.add(cap);
-  colBox(g, 6, 16, 6, 0, 8, 0);
-  g.userData.isWaterTower = true;
   return g;
 }
 export function makeTree(){
@@ -143,8 +130,6 @@ export function makeWarehouse(){
   const roof = hipRoof(12, 18.2, 2.6, M.roofTar); roof.position.y = 6.8; g.add(roof);
   const door = new THREE.Mesh(new THREE.BoxGeometry(4.5, 3.6, 0.25), M.dark);
   door.position.set(0, 1.8, 8.6); g.add(door);
-  colBox(g, 11, 8, 17, 0, 4, 0);
-  g.userData.isWarehouse = true;
   return g;
 }
 export function makeCrane(){
@@ -163,8 +148,6 @@ export function makeCrane(){
   cable.position.set(0, 11.4, 10.4); g.add(cable);
   const hook = new THREE.Mesh(new THREE.BoxGeometry(0.7,0.5,0.7), M.red);
   hook.position.set(0, 7.6, 10.4); g.add(hook);
-  colBox(g, 4, 18, 14, 0, 9, 0);
-  g.userData.isCrane = true;
   return g;
 }
 const CONTAINER_COLORS = [0xb4432f, 0x3f6f8f, 0xd9a441, 0x4d7a4a, 0x8a8f96];
@@ -178,7 +161,5 @@ export function makeContainerStack(matFn){
     c.rotation.y = (Math.random()-0.5)*0.1;
     g.add(c);
   }
-  colBox(g, 3, n*2.25+1, 7, 0, (n*2.25+1)/2, 0);
-  g.userData.isContainerStack = true;
   return g;
 }

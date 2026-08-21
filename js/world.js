@@ -1,1 +1,1 @@
-export const world = { entities:[], islands:[], ships:[], whales:[], arch:null, buildings:[] };
+export const world = { entities:[], islands:[], ships:[], whales:[], arch:null };
