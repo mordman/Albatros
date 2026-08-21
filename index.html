@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Альбатрос — бесконечное море</title>
+<link rel="stylesheet" href="./css/style.css">
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js" } }
+</script>
+</head>
+<body>
+
+<div id="hud">
+  <div class="brand"><b>АЛЬБАТРОС</b>&nbsp;&nbsp;·&nbsp;&nbsp;СВОБОДНЫЙ РЕЙС</div>
+  <div id="compassWrap"><canvas id="compass" width="600" height="68"></canvas></div>
+  <div id="status">БРЕЮЩИЙ ПОЛЁТ</div>
+  <div class="data">
+    <div class="datum"><span class="dl">СКОРОСТЬ</span><span class="dv"><span id="vSpd">0</span><i>км/ч</i></span></div>
+    <div class="datum"><span class="dl" id="lAlt">ВЫСОТА</span><span class="dv"><span id="vAlt">0</span><i>м</i></span></div>
+    <div class="datum"><span class="dl">ПУТЬ</span><span class="dv"><span id="vOdo">0.0</span><i>км</i></span></div>
+    <div class="datum"><span class="dl">АВАРИИ</span><span class="dv"><span id="vCrash">0</span></span></div>
+  </div>
+  <div id="caption"></div>
+  <div class="hint">
+    <span class="key">W</span><span class="key">S</span> высота · газ · погружение · тормоз &nbsp; <span class="key">A</span><span class="key">D</span> поворот<br>
+    <span class="key">SHIFT</span> форсаж &nbsp; <span class="key">V</span> транспорт &nbsp; <span class="key">B</span> коллизии &nbsp; <span class="key">ESC</span> пауза
+  </div>
+  <div class="topbtns">
+    <button class="tbtn" id="btnSound" title="Звук">
+      <svg viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L13 19V5L7.5 9.5H4z"/>
+        <path class="waves" d="M16 9c1.6 1.6 1.6 4.4 0 6M18.5 7c2.6 2.6 2.6 7.4 0 10"/>
+        <path class="slash" d="M4.5 4.5l15 15"/></svg>
+    </button>
+    <button class="tbtn" id="btnPause" title="Пауза">
+      <svg viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></svg>
+    </button>
+  </div>
+</div>
+
+<div id="fade"></div>
+
+<div id="menu">
+  <div class="menu-inner">
+    <div class="kicker">СВОБОДНЫЙ РЕЙС · ПРОТОКОЛ 07</div>
+    <h1>АЛЬБАТРОС</h1>
+    <p class="sub">Море, архипелаг «Три Сестры» — три города на больших островах, соединённые
+      <em>подвесными мостами</em>. Катайтесь по мостам на <em>мотоцикле</em>, летайте на
+      <em>гидроплане</em>, ходите на <em>катере</em> и ныряйте к рэкам на <em>батискафе</em>.
+      Пересадка — клавиша V.</p>
+    <div class="vsel">
+      <button class="vcard sel" data-v="plane" type="button">
+        <svg viewBox="0 0 24 24"><path d="M3.5 11.5L20.5 4l-6.5 16.5-2.8-6.9L3.5 11.5z"/><path d="M11.2 13.6L20.5 4"/></svg>
+        <div><div class="vname">ГИДРОПЛАН</div><div class="vdesc">«ЧАЙКА-07» · полёт</div></div>
+      </button>
+      <button class="vcard" data-v="boat" type="button">
+        <svg viewBox="0 0 24 24"><path d="M12 3.5v9.5"/><path d="M12 4.5c3.5 1.8 5.5 4.5 6 8.5H12"/><path d="M12 6c-2.6 1.6-4 4-4.4 7H12"/><path d="M4 15.5h16l-2 4H6l-2-4z"/></svg>
+        <div><div class="vname">КАТЕР</div><div class="vdesc">«СТРЕЛА» · 40 узлов</div></div>
+      </button>
+      <button class="vcard" data-v="sub" type="button">
+        <svg viewBox="0 0 24 24"><ellipse cx="12" cy="7" rx="6.4" ry="2.5"/><path d="M9.5 9.3v1.4M14.5 9.3v1.4"/><circle cx="12" cy="14.8" r="4.4"/><circle cx="12" cy="14.6" r="1.5"/><path d="M5.6 7h12.8"/></svg>
+        <div><div class="vname">БАТИСКАФ</div><div class="vdesc">«ОРЛАН» · глубины</div></div>
+      </button>
+      <button class="vcard" data-v="moto" type="button">
+        <svg viewBox="0 0 24 24"><circle cx="5.5" cy="17" r="3.1"/><circle cx="18.5" cy="17" r="3.1"/><path d="M5.5 17l3.6-6.5h3.4l2.2 3.2h3.8"/><path d="M8.2 8.2h3.2l1.6 2.8"/><path d="M15 10.5l3.5 6.5"/></svg>
+        <div><div class="vname">МОТОЦИКЛ</div><div class="vdesc">«СТРИЖ» · мосты</div></div>
+      </button>
+    </div>
+    <div class="controls">
+      <div class="crow"><span class="key">W</span><span class="key">S</span> высота / газ / погружение / тормоз</div>
+      <div class="crow"><span class="key">A</span><span class="key">D</span> поворот &nbsp;·&nbsp; <span class="key">SHIFT</span> форсаж</div>
+      <div class="crow"><span class="key">V</span> пересадка &nbsp;·&nbsp; <span class="key">B</span> коллизии &nbsp;·&nbsp; <span class="key">ESC</span> пауза</div>
+    </div>
+    <button id="startBtn">ВЗЛЕТЕТЬ</button>
+    <div class="foot">ЧЕТЫРЕ ТРАНСПОРТА · АРХИПЕЛАГ С МОСТАМИ · МЕГАЛОДОН</div>
+  </div>
+</div>
+
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>
