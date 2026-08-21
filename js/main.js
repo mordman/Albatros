@@ -14,6 +14,7 @@ import { checkCollisions, updateDebris, respawn, crashPos } from './collisions.j
 import { updateHUD, updateCaptions, showCaption } from './hud.js';
 import { initAudio, updateAudio, toggleAudioBtn } from './audio.js';
 import { archSpawn } from './arch.js';
+import { updateRagdolls } from './pedestrians.js';
 
 /* ===== МЕНЮ / КНОПКИ ===== */
 const menu = document.getElementById('menu');
@@ -101,6 +102,7 @@ function animate(){
   for(const e of world.entities) e.update(dt, game.simT);
   particles.update(dt);
   updateDebris(dt, game.simT);
+  updateRagdolls(dt);
   checkCollisions(game.simT);
   if(state.crashed){
     game.respawnT -= rawDt;
