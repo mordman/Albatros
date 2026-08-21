@@ -65,10 +65,12 @@ export function makeCityIsland(name, portA){
   church.position.set(hillPos.x + chOff.x, townY, hillPos.z + chOff.z);
   church.rotation.y = rnd(0, Math.PI*2);
   g.add(church);
+  world.buildings.push({ group:church, box:{ cx:hillPos.x + chOff.x, cy:townY+14, cz:hillPos.z + chOff.z, hw:5, hh:14, hd:9 } });
   const wtOff = { x: -chOff.x*0.9, z: -chOff.z*0.9 };
   const wt = makeWaterTower();
   wt.position.set(hillPos.x + wtOff.x, townY, hillPos.z + wtOff.z);
   g.add(wt);
+  world.buildings.push({ group:wt, box:{ cx:hillPos.x + wtOff.x, cy:townY+8, cz:hillPos.z + wtOff.z, hw:3, hh:8, hd:3 } });
 
   let maxBH = 0;
   const step = 16;
@@ -87,7 +89,7 @@ export function makeCityIsland(name, portA){
         const bh = 13 + central*central*rnd(22, 58) + rnd(0, 8);
         maxBH = Math.max(maxBH, bh);
         const b = makeBuilding(rnd(8, 12), bh, rnd(8, 12));
-        b.position.set(px, townY + bh/2, pz);
+        b.position.set(px, townY, pz);
         b.rotation.y = rotY;
         if(bh > 38 && Math.random() < 0.85){
           const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.18, 7, 5), M.dark);
@@ -96,11 +98,13 @@ export function makeCityIsland(name, portA){
           bc.position.y = bh/2 + 7.2; b.add(bc);
         }
         g.add(b);
+        world.buildings.push({ group:b, box:{ cx:px, cy:townY+bh/2, cz:pz, hw:6, hh:bh/2, hd:6 } });
       } else {
         const b = makeHouse(rnd(6, 9), rnd(6.5, 11), rnd(6, 9));
         b.position.set(px, townY, pz);
         b.rotation.y = rotY;
         g.add(b);
+        world.buildings.push({ group:b, box:{ cx:px, cy:townY+5.5, cz:pz, hw:5, hh:5.5, hd:5 } });
       }
     }
 
@@ -152,18 +156,22 @@ export function makeCityIsland(name, portA){
   }
   const wh1 = makeWarehouse(); wh1.rotation.y = portA;
   wh1.position.set(px + perp.x*R*0.24, 5, pz + perp.z*R*0.24); g.add(wh1);
+  world.buildings.push({ group:wh1, box:{ cx:px + perp.x*R*0.24, cy:5+4, cz:pz + perp.z*R*0.24, hw:6, hh:4, hd:9 } });
   const wh2 = makeWarehouse(); wh2.rotation.y = portA;
   wh2.position.set(px - perp.x*R*0.26, 5, pz - perp.z*R*0.26); g.add(wh2);
+  world.buildings.push({ group:wh2, box:{ cx:px - perp.x*R*0.26, cy:5+4, cz:pz - perp.z*R*0.26, hw:6, hh:4, hd:9 } });
   for(let i=0;i<3;i++){
     const st = makeContainerStack(mat);
     st.position.set(px + perp.x*rnd(2,14) - dir.x*rnd(4,12), 5, pz + perp.z*rnd(2,14) - dir.z*rnd(4,12));
     st.rotation.y = portA + rnd(-0.15, 0.15);
     g.add(st);
+    world.buildings.push({ group:st, box:{ cx:st.position.x, cy:5+3, cz:st.position.z, hw:2, hh:3, hd:4 } });
   }
   const crane = makeCrane();
   crane.rotation.y = portA + rnd(-0.3, 0.3);
   crane.position.set(px - dir.x*R*0.05 + perp.x*R*0.12, 5, pz - dir.z*R*0.05 + perp.z*R*0.12);
   g.add(crane);
+  world.buildings.push({ group:crane, box:{ cx:crane.position.x, cy:5+9, cz:crane.position.z, hw:2, hh:9, hd:7 } });
 
   const fact = new THREE.Group();
   {
