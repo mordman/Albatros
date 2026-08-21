@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { scene, camera } from './engine.js';
-import { clamp, BOAT, SUB, MOTO } from './config.js';
+import { clamp, rnd, BOAT, SUB, MOTO } from './config.js';
 import { player, state, game } from './state.js';
 import { M, mat } from './materials.js';
 import { makeHull, strutBetween, wingGeo, colBox } from './helpers.js';
@@ -20,7 +20,7 @@ let sprayT = 0, siltT = 0, bubT2 = 0, wakeT2 = 0, dustT = 0;
 /* ===== ГИДРОПЛАН «ЧАЙКА-07» ===== */
 export const planeG = new THREE.Group();
 planeG.rotation.order = 'YXZ';
-const PG = planeG.userData;
+export const PG = planeG.userData;
 {
   const prof = [[0.05,-3.7],[0.12,-3.3],[0.22,-2.6],[0.34,-1.8],[0.44,-1.0],[0.50,-0.3],
                 [0.52,0.3],[0.50,1.0],[0.46,1.6],[0.40,2.1],[0.33,2.5]]
@@ -162,6 +162,28 @@ const PG = planeG.userData;
     wr2.position.set(0, -0.42, -1.95); fl.add(wr2);
     planeG.add(strutBetween(s*2.3,-0.9,1.9, s*0.5,-0.3,1.35, 0.045, M.planeD));
     planeG.add(strutBetween(s*2.3,-0.9,-0.3, s*0.5,-0.3,-0.1, 0.045, M.planeD));
+  }
+  // спаренный пулемёт над капотом
+  PG.muzzles = [];
+  for(const s of [-1,1]){
+    const gun = new THREE.Group();
+    const bodyM = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.1, 0.42), M.planeD);
+    gun.add(bodyM);
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.55, 6), M.planeD);
+    barrel.rotation.x = Math.PI/2;
+    barrel.position.z = 0.45;
+    gun.add(barrel);
+    const mag = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.14, 0.1), M.planeR);
+    mag.position.set(0, -0.1, -0.05);
+    gun.add(mag);
+    gun.position.set(s*0.30, 0.62, 2.62);
+    planeG.add(gun);
+    const mz = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 5),
+      new THREE.MeshBasicMaterial({ color:0xffd980, transparent:true, opacity:0.9, fog:false }));
+    mz.position.set(s*0.30, 0.62, 3.0);
+    mz.visible = false;
+    planeG.add(mz);
+    PG.muzzles.push(mz);
   }
 }
 scene.add(planeG);
@@ -397,21 +419,19 @@ export const MG = motoG.userData;
 {
   const wheel = ()=>{
     const w = new THREE.Group();
-    // шина: тор повёрнут так, чтобы ось колеса была вдоль X (влево-вправо)
+    // шина: ось колеса вдоль X (влево-вправо)
     const tireGeo = new THREE.TorusGeometry(0.30, 0.09, 8, 20);
     tireGeo.rotateY(Math.PI/2);
     w.add(new THREE.Mesh(tireGeo, M.rubber));
-    // обод
     const rimGeo = new THREE.TorusGeometry(0.22, 0.03, 6, 16);
     rimGeo.rotateY(Math.PI/2);
     w.add(new THREE.Mesh(rimGeo, M.motoChrome));
-    // спицы: стержни вдоль Y, веером в плоскости YZ (вращаем вокруг оси X)
+    // спицы: веером в плоскости YZ
     for(let i=0;i<4;i++){
       const sp = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.42, 0.02), M.motoChrome);
       sp.rotation.x = i*Math.PI/4;
       w.add(sp);
     }
-    // ступица: цилиндр по умолчанию вдоль Y — кладём вдоль X
     const hubGeo = new THREE.CylinderGeometry(0.05,0.05,0.14,8);
     hubGeo.rotateZ(Math.PI/2);
     w.add(new THREE.Mesh(hubGeo, M.motoChrome));
@@ -629,8 +649,8 @@ function updateBoat(dt, t){
       BG.wakeT -= 0.05;
       BG.wakeAnchor.getWorldPosition(tmpV);
       const sp = 1 + Math.abs(player.speed)*0.07;
-      particles.spawn(tmpV.x+rnd2(-sp,sp), waterY(tmpV.x,tmpV.z,t)+0.12, tmpV.z+rnd2(-sp,sp),
-        { life:1.6+Math.random()*1.8, s0:1.0, s1:4.5+Math.abs(player.speed)*0.09,
+      particles.spawn(tmpV.x+rnd(-sp,sp), waterY(tmpV.x,tmpV.z,t)+0.12, tmpV.z+rnd(-sp,sp),
+        { life:rnd(1.6,3.4), s0:1.0, s1:4.5+Math.abs(player.speed)*0.09,
           r:0.92, g:0.96, b:0.96, a:0.5, vy:0.15 });
     }
   } else BG.wakeT = 0;
@@ -641,11 +661,11 @@ function updateBoat(dt, t){
       for(const s of [-1,1]){
         tmpV2.set(s*0.85, 0.7, 2.55);
         boatG.localToWorld(tmpV2);
-        const k = (2+Math.random()*3)*spd01;
+        const k = rnd(2,5)*spd01;
         particles.spawn(tmpV2.x, tmpV2.y, tmpV2.z, {
           vx: -fz*s*k + fx*player.speed*0.15,
           vz:  fx*s*k + fz*player.speed*0.15,
-          vy: (3+Math.random()*5)*spd01, life:0.5+Math.random()*0.6, s0:0.8+Math.random()*0.8, s1:0.3,
+          vy: rnd(3,8)*spd01, life:rnd(0.5,1.1), s0:rnd(0.8,1.6), s1:0.3,
           r:0.95, g:0.98, b:0.97, a:0.85, grav:-24, drag:0.4 });
       }
     }
@@ -660,7 +680,6 @@ function updateBoat(dt, t){
   camera.fov += (tFov - camera.fov)*Math.min(1, dt*3);
   camera.updateProjectionMatrix();
 }
-const rnd2 = (a,b)=> a + Math.random()*(b-a);
 
 function updateSub(dt, t){
   let steer = 0, lift = 0, boost = false;
@@ -713,9 +732,9 @@ function updateSub(dt, t){
     if(siltT <= 0){
       siltT = 0.07;
       for(let i=0;i<3;i++)
-        particles.spawn(x+rnd2(-1.6,1.6), seafloorY(x,z)+0.1+Math.random()*0.7, z+rnd2(-1.6,1.6),
-          { vx:rnd2(-0.7,0.7)+fx*v*0.2, vy:0.6+Math.random()*1.2, vz:rnd2(-0.7,0.7)+fz*v*0.2,
-            life:2.5+Math.random()*2, s0:1.4+Math.random(), s1:3.5+Math.random()*3,
+        particles.spawn(x+rnd(-1.6,1.6), seafloorY(x,z)+rnd(0.1,0.8), z+rnd(-1.6,1.6),
+          { vx:rnd(-0.7,0.7)+fx*v*0.2, vy:rnd(0.6,1.8), vz:rnd(-0.7,0.7)+fz*v*0.2,
+            life:rnd(2.5,4.5), s0:rnd(1.4,2.4), s1:rnd(3.5,6.5),
             r:0.40, g:0.36, b:0.28, a:0.38, drag:0.5 });
     }
   }
@@ -736,8 +755,8 @@ function updateSub(dt, t){
       wakeT2 = 0.09;
       tmpV.set(0,-0.5,-2.2);
       subG.localToWorld(tmpV);
-      particles.spawn(tmpV.x+rnd2(-1,1), waterY(tmpV.x,tmpV.z,t)+0.12, tmpV.z+rnd2(-1,1),
-        { life:1.5+Math.random()*1.5, s0:0.9, s1:3.6, r:0.92, g:0.96, b:0.96, a:0.4, vy:0.12 });
+      particles.spawn(tmpV.x+rnd(-1,1), waterY(tmpV.x,tmpV.z,t)+0.12, tmpV.z+rnd(-1,1),
+        { life:rnd(1.5,3), s0:0.9, s1:3.6, r:0.92, g:0.96, b:0.96, a:0.4, vy:0.12 });
     }
   }
   fwd.set(fx, 0, fz);
@@ -799,8 +818,8 @@ function updateMoto(dt, t){
         motoG.localToWorld(tmpV);
         const dusty = !gnd.road;
         particles.spawn(tmpV.x, tmpV.y, tmpV.z, {
-          vx:-fx*player.speed*0.25+rnd2(-1,1), vy:0.5+Math.random()*1.1, vz:-fz*player.speed*0.25+rnd2(-1,1),
-          life:0.7+Math.random()*0.9, s0:0.5+Math.random()*0.4, s1:1.6+Math.random()*1.2,
+          vx:-fx*player.speed*0.25+rnd(-1,1), vy:rnd(0.5,1.6), vz:-fz*player.speed*0.25+rnd(-1,1),
+          life:rnd(0.7,1.6), s0:rnd(0.5,0.9), s1:rnd(1.6,2.8),
           r:dusty?0.75:0.62, g:dusty?0.68:0.60, b:dusty?0.55:0.58, a:dusty?0.4:0.22, drag:1.2 });
       }
     }
@@ -883,6 +902,6 @@ export function switchVehicle(){
     player.pitch = 0.08;
     player.pos.y = Math.max(player.pos.y, wy + 50);
     player.speed = Math.max(Math.abs(player.speed), 42);
-    captionNow('ПЕРЕСАДКА · ГИДРОПЛАН «ЧАЙКА-07»');
+    captionNow('ПЕРЕСАДКА · ГИДРОПЛАН «ЧАЙКА-07» · SPACE ПУЛЕМЁТ');
   }
 }

@@ -50,6 +50,20 @@ export function boomSound(){
   src.start();
 }
 
+export function gunSound(){
+  if(!audio) return;
+  const ctx = audio.ctx;
+  const len = Math.floor(ctx.sampleRate*0.05);
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i] = (Math.random()*2-1)*Math.pow(1-i/len, 1.5)*0.5;
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 0.8;
+  const g = ctx.createGain(); g.gain.value = 0.5;
+  src.connect(f); f.connect(g); g.connect(ctx.destination);
+  src.start();
+}
+
 export function updateAudio(camUnder){
   if(!audio) return;
   const on = audioOn && !state.paused;

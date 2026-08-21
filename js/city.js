@@ -11,6 +11,8 @@ import { waterY } from './environment.js';
 import { particles } from './particles.js';
 import { world } from './world.js';
 import { distToPlayer, placeAhead } from './state.js';
+import { registerBuildings, bboxFor } from './buildings.js';
+import { spawnCityPedestrians } from './pedestrians.js';
 
 const tmpV = new THREE.Vector3();
 
@@ -71,6 +73,7 @@ export function makeCityIsland(name, portA){
   g.add(wt);
 
   let maxBH = 0;
+  const blds = [];
   const step = 16;
   for(let gx=-Rp+8; gx<=Rp-8; gx+=step)
     for(let gz=-Rp+8; gz<=Rp-8; gz+=step){
@@ -84,9 +87,10 @@ export function makeCityIsland(name, portA){
       const rotY = (Math.abs(gx) > Math.abs(gz) ? 0 : Math.PI/2) + rnd(-0.05, 0.05);
       const px = hillPos.x + gx + rnd(-2.5, 2.5), pz = hillPos.z + gz + rnd(-2.5, 2.5);
       if(central > 0.5 && Math.random() < 0.75){
+        const bw = rnd(8, 12), bd = rnd(8, 12);
         const bh = 13 + central*central*rnd(22, 58) + rnd(0, 8);
         maxBH = Math.max(maxBH, bh);
-        const b = makeBuilding(rnd(8, 12), bh, rnd(8, 12));
+        const b = makeBuilding(bw, bh, bd);
         b.position.set(px, townY + bh/2, pz);
         b.rotation.y = rotY;
         if(bh > 38 && Math.random() < 0.85){
@@ -96,13 +100,21 @@ export function makeCityIsland(name, portA){
           bc.position.y = bh/2 + 7.2; b.add(bc);
         }
         g.add(b);
+        const bb = bboxFor(bw, bd, rotY);
+        blds.push({ x:px, z:pz, y0:townY-1, y1:townY+bh, hw:bb.hw+0.4, hd:bb.hd+0.4 });
       } else {
-        const b = makeHouse(rnd(6, 9), rnd(6.5, 11), rnd(6, 9));
+        const bw = rnd(6, 9), bd = rnd(6, 9), bh = rnd(6.5, 11);
+        const b = makeHouse(bw, bh, bd);
         b.position.set(px, townY, pz);
         b.rotation.y = rotY;
         g.add(b);
+        const bb = bboxFor(bw, bd, rotY);
+        blds.push({ x:px, z:pz, y0:townY-1, y1:townY+bh+2.2, hw:bb.hw+0.4, hd:bb.hd+0.4 });
       }
     }
+  // церковь и водонапорная башня — тоже твёрдые
+  blds.push({ x:hillPos.x+chOff.x, z:hillPos.z+chOff.z, y0:townY-1, y1:townY+27, hw:3.4, hd:8.2 });
+  blds.push({ x:hillPos.x+wtOff.x, z:hillPos.z+wtOff.z, y0:townY-1, y1:townY+15, hw:3.2, hd:3.2 });
 
   {
     const mastG = new THREE.Group();
@@ -210,14 +222,15 @@ export function makeCityIsland(name, portA){
   }
 
   scene.add(g);
-  const bh = Math.max(maxBH, 10);
   colBox(g, R*1.9, 8, R*1.9, 0, 4, 0);
-  colBox(g, Rp*2.2, bh, Rp*2.2, hillPos.x, townY + bh/2, hillPos.z);
   const pop = Math.floor(rnd(9, 36));
   const city = { group:g, point:g.position, colType:'city', capR:950, clear:R+300,
-    R, Rp, hx:hillPos.x, hz:hillPos.z, topY:townY+bh,
+    R, Rp, hx:hillPos.x, hz:hillPos.z, topY:townY+Math.max(maxBH,10),
     label:`Порт-город «${name}» · ${pop} тыс. жителей`,
     boats, smokeAnchor, beams, smT:0 };
+  city.townY = townY;
+  registerBuildings(city, blds);
+  spawnCityPedestrians(city, hillPos, Rp, townY);
   city.update = (dt,t)=>{
     for(const b of city.boats){
       b.mesh.getWorldPosition(tmpV);

@@ -14,6 +14,8 @@ import { checkCollisions, updateDebris, respawn, crashPos } from './collisions.j
 import { updateHUD, updateCaptions, showCaption } from './hud.js';
 import { initAudio, updateAudio, toggleAudioBtn } from './audio.js';
 import { archSpawn } from './arch.js';
+import { updateGun } from './gun.js';
+import { updatePedestrians } from './pedestrians.js';
 
 /* ===== МЕНЮ / КНОПКИ ===== */
 const menu = document.getElementById('menu');
@@ -67,7 +69,8 @@ btnPause.addEventListener('click', ()=> togglePause());
 let debugCols = false;
 addEventListener('keydown', e=>{
   keys[e.code] = true;
-  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+  if(e.code === 'Space') e.preventDefault(); // чтобы страница не скроллилась при стрельбе
   if(e.code === 'Escape' && state.started) togglePause();
   if(e.code === 'KeyB'){ debugCols = !debugCols; setDebugCols(debugCols); }
   if(e.code === 'KeyV') switchVehicle();
@@ -98,6 +101,8 @@ function animate(){
   M.beacon.emissiveIntensity = 1.4 + Math.sin(game.simT*4)*1.2;
 
   updatePlayer(dt, game.simT);
+  updatePedestrians(dt);
+  updateGun(dt, game.simT);
   for(const e of world.entities) e.update(dt, game.simT);
   particles.update(dt);
   updateDebris(dt, game.simT);

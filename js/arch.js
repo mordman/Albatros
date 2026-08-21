@@ -8,6 +8,8 @@ import { makePalm } from './nature.js';
 import { world } from './world.js';
 import { state, distToPlayer, placeAhead } from './state.js';
 import { resetSeaAnchor } from './seafloor.js';
+import { registerBuildings, bboxFor } from './buildings.js';
+import { spawnArchPedestrians } from './pedestrians.js';
 
 export function makeArch(name){
   const g = new THREE.Group();
@@ -17,6 +19,7 @@ export function makeArch(name){
     {dx:880, dz:430,  r:220, ph:16},
   ];
   const bridges = [];
+  const blds = [];
   for(let si=0; si<subs.length; si++){
     const s = subs[si];
     const N = 10, pts = [];
@@ -74,8 +77,9 @@ export function makeArch(name){
         const px = s.dx+gx+rnd(-4,4), pz = s.dz+gz+rnd(-4,4);
         const rotY = (Math.abs(gx)>Math.abs(gz)?0:Math.PI/2)+rnd(-0.06,0.06);
         if(central > 0.45 && Math.random() < 0.8){
+          const bw = rnd(12,17), bd = rnd(12,17);
           const bh = 14 + central*central*rnd(30, si===0 ? 110 : 70) + rnd(0,10);
-          const b = makeBuilding(rnd(12,17), bh, rnd(12,17));
+          const b = makeBuilding(bw, bh, bd);
           b.position.set(px, s.ph+0.6+bh/2, pz);
           b.rotation.y = rotY;
           if(bh > 60){
@@ -85,16 +89,23 @@ export function makeArch(name){
             bc.position.y = bh/2+9.2; b.add(bc);
           }
           g.add(b);
+          const bb = bboxFor(bw, bd, rotY);
+          blds.push({ x:px, z:pz, y0:s.ph-1, y1:s.ph+bh+1, hw:bb.hw+0.4, hd:bb.hd+0.4 });
         } else {
-          const hh = makeHouse(rnd(9,13), rnd(9,15), rnd(9,13));
+          const bw = rnd(9,13), bd = rnd(9,13), bh = rnd(9,15);
+          const hh = makeHouse(bw, bh, bd);
           hh.position.set(px, s.ph+0.6, pz);
           hh.rotation.y = rotY;
           g.add(hh);
+          const bb = bboxFor(bw, bd, rotY);
+          blds.push({ x:px, z:pz, y0:s.ph-1, y1:s.ph+bh+3, hw:bb.hw+0.4, hd:bb.hd+0.4 });
         }
       }
     if(si===0){
       const wt = makeWaterTower(); wt.position.set(s.dx-Rp*0.5, s.ph+0.6, s.dz-Rp*0.5); g.add(wt);
       const ch = makeChurch(); ch.position.set(s.dx+Rp*0.45, s.ph+0.6, s.dz-Rp*0.45); ch.rotation.y = rnd(0,3); g.add(ch);
+      blds.push({ x:s.dx+Rp*0.45, z:s.dz-Rp*0.45, y0:s.ph-1, y1:s.ph+28, hw:3.4, hd:8.2 });
+      blds.push({ x:s.dx-Rp*0.5,  z:s.dz-Rp*0.5,  y0:s.ph-1, y1:s.ph+16, hw:3.2, hd:3.2 });
     }
     colBox(g, s.r*1.4, s.ph, s.r*1.4, s.dx, s.ph/2, s.dz);
   }
@@ -191,6 +202,8 @@ export function makeArch(name){
     }
   };
   arch.sync();
+  registerBuildings(arch, blds);
+  spawnArchPedestrians(arch);
   world.entities.push(arch);
   return arch;
 }

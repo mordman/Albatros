@@ -10,6 +10,7 @@ import { explosion, splash, bubbles, feathers } from './particles.js';
 import { boomSound } from './audio.js';
 import { showCaption } from './hud.js';
 import { archSpawn } from './arch.js';
+import { checkBuildingHit } from './buildings.js';
 
 export const debris = [];
 export const crashPos = new THREE.Vector3();
@@ -120,14 +121,15 @@ export function respawn(){
 }
 
 function islandCollision(P, PR){
-  if(state.vehicle === 'moto') return null; // мото едет по groundAt
+  if(state.vehicle === 'moto') return null; // мото ездит по groundAt
   for(const isl of world.islands){
     if(isl.colType === 'city'){
       if(distToPlayer(isl.point) < isl.R*0.95 && P.y < 7)
         return state.vehicle==='sub' ? 'врезался в основание порта' : 'сел на мель';
+      // склон под городом твёрдый, но между домами летать можно
       const hx = P.x - (isl.point.x + isl.hx), hz = P.z - (isl.point.z + isl.hz);
-      if(Math.hypot(hx,hz) < isl.Rp + PR && P.y < isl.topY)
-        return 'столкновение с городом';
+      if(P.y > 3 && Math.hypot(hx,hz) < isl.Rp*0.85 && P.y < isl.townY - 2)
+        return 'врезался в склон города';
     } else if(isl.colType === 'arch'){
       const d = distToPlayer(isl.point);
       if(d < isl.r + PR && P.y < isl.ph + 4){
@@ -147,9 +149,11 @@ function islandCollision(P, PR){
 
 export function checkCollisions(t){
   if(!state.started || state.crashed) return;
-  const P = player.pos, PR = state.vehicle==='boat' ? 2.7 : 3.2;
+  const P = player.pos, PR = state.vehicle==='boat' ? 2.7 : state.vehicle==='moto' ? 1.1 : 3.2;
   const terr = islandCollision(P, PR);
   if(terr) return crash(terr);
+  if(checkBuildingHit(P.x, P.y, P.z, PR))
+    return crash('врезался в здание');
   for(const e of world.entities){
     switch(e.colType){
       case 'ship':{
