@@ -91,10 +91,11 @@ export function updatePedestrians(dt){
   for(const p of world.pedestrians){
     const m = p.mesh;
     if(p.dead){
+      // взорван: меш скрыт, ждём респавна в другом месте
       p.deadT += dt;
-      m.rotation.x = -Math.min(p.deadT*5, 1)*Math.PI/2;  // падает
-      if(p.deadT > 4.5){                                  // «встаёт» в другом месте
+      if(p.deadT > 4.5){
         p.dead = false; p.deadT = 0;
+        m.visible = true;
         m.rotation.x = 0;
         p.t = rnd(p.min, p.max);
         p.dir = Math.random()<0.5 ? 1 : -1;

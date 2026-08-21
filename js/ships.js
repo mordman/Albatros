@@ -4,18 +4,67 @@ import { WIND, rnd, clamp } from './config.js';
 import { M, mat } from './materials.js';
 import { makeHull, makeSail, mast, yard, flagMesh, strutBetween, colBox } from './helpers.js';
 import { waterY } from './environment.js';
-import { particles } from './particles.js';
+import { particles, explosion, splash, bubbles } from './particles.js';
 import { world } from './world.js';
-import { player, distToPlayer, placeAhead } from './state.js';
+import { player, game, distToPlayer, placeAhead } from './state.js';
+import { boomSound } from './audio.js';
+import { showCaption } from './hud.js';
 
 const tmpV = new THREE.Vector3();
 
 function makeShip(group, o){
   const s = { group, ...o, point: group.position, colType:'ship', phase: rnd(0,20),
     heading: rnd(0,Math.PI*2), turn: rnd(-0.012,0.012), rx:0, rz:0,
-    smokeT:0, wakeT:0, capR:340, recycleAt:3200 };
+    smokeT:0, wakeT:0, capR:340, recycleAt:3200,
+    hp:10, name: o.name || 'Судно', burning:false, sinking:false, sinkT:0, dmgT:0 };
   colBox(group, o.width, o.colH, o.len, 0, o.colH/2, 0);
+  // точка повреждений на палубе — от неё огонь и дым
+  const dmgAnchor = new THREE.Object3D();
+  dmgAnchor.position.set(rnd(-1,1), o.colH*0.55, rnd(-o.len*0.3, o.len*0.3));
+  group.add(dmgAnchor);
+  s.dmgAnchor = dmgAnchor;
+
   s.update = (dt,t)=>{
+
+    /* === корабль тонет === */
+    if(s.sinking){
+      s.sinkT += dt;
+      const g = s.group;
+      g.position.y -= (0.4 + s.sinkT*0.1)*dt;   // погружение с ускорением
+      g.rotation.z += dt*0.1;
+      g.rotation.x += dt*0.05;
+      const wy = waterY(g.position.x, g.position.z, t);
+      s.dmgT -= dt;
+      if(g.position.y > wy - 2){
+        // ещё над водой — догорает и дымит
+        if(s.dmgT <= 0){
+          s.dmgT = 0.08;
+          dmgAnchor.getWorldPosition(tmpV);
+          for(let k=0;k<2;k++)
+            particles.spawn(tmpV.x+rnd(-2,2), tmpV.y, tmpV.z+rnd(-2,2), {
+              vx:rnd(-1,1), vy:rnd(2,5), vz:rnd(-1,1),
+              life:rnd(.3,.7), s0:rnd(1,2), s1:rnd(2,4),
+              r:1, g:rnd(.35,.6), b:.1, a:.9, drag:1.5 });
+          particles.spawn(tmpV.x, tmpV.y, tmpV.z, {
+            vx:WIND.x*0.5+rnd(-.5,.5), vy:rnd(2,4), vz:WIND.z*0.5+rnd(-.5,.5),
+            life:rnd(2,4), s0:1.5, s1:8, r:.2, g:.19, b:.21, a:.5 });
+        }
+      } else if(s.dmgT <= 0){
+        // уже под водой — пузыри
+        s.dmgT = 0.12;
+        bubbles(g.position.x+rnd(-4,4), wy, g.position.z+rnd(-4,4), 3, 1.2);
+      }
+      // полностью утонул — респавн впереди с полным HP
+      if(g.position.y < -85 || s.sinkT > 26){
+        s.sinking = false; s.burning = false; s.hp = 10; s.sinkT = 0;
+        s.rx = 0; s.rz = 0;
+        g.rotation.set(0, s.heading, 0);
+        placeAhead(s.point, 1100, 2400, 2.4, world.islands);
+      }
+      return;
+    }
+
+    /* === обычный ход === */
     if(s.wiggle) s.heading += Math.sin(t*0.4+s.phase)*0.25*dt;
     s.heading += s.turn*dt;
     const x = s.point.x + Math.sin(s.heading)*s.speed*dt;
@@ -52,11 +101,51 @@ function makeShip(group, o){
           life:rnd(1.8,3), s0:1.1, s1:5.5, r:0.92,g:0.96,b:0.96, a:0.42, vy:0.2 });
       }
     }
+
+    /* === пожар после 5 попаданий === */
+    if(s.burning){
+      s.dmgT -= dt;
+      if(s.dmgT <= 0){
+        s.dmgT = 0.1;
+        dmgAnchor.getWorldPosition(tmpV);
+        particles.spawn(tmpV.x, tmpV.y, tmpV.z, {
+          vx:rnd(-0.6,0.6), vy:rnd(1.5,3.5), vz:rnd(-0.6,0.6),
+          life:rnd(.25,.6), s0:rnd(.8,1.6), s1:rnd(1.5,3),
+          r:1, g:rnd(.4,.6), b:.12, a:.85, drag:1.2 });
+        particles.spawn(tmpV.x, tmpV.y, tmpV.z, {
+          vx:WIND.x*0.6+rnd(-.4,.4), vy:rnd(2.5,4), vz:WIND.z*0.6+rnd(-.4,.4),
+          life:rnd(2.5,4.5), s0:1.3, s1:7.5, r:.22, g:.21, b:.23, a:.5 });
+      }
+    }
+
     if(distToPlayer(s.point) > s.recycleAt)
       placeAhead(s.point, 1100, 2400, 2.4, world.islands);
   };
   scene.add(group);
   return s;
+}
+
+/* попадание пулей: -1 HP; на 5 — пожар; на 0 — взрыв и затопление */
+export function damageShip(s, hx, hy, hz){
+  if(s.sinking) return;
+  s.hp--;
+  for(let k=0;k<5;k++)
+    particles.spawn(hx, hy, hz, {
+      vx:rnd(-6,6), vy:rnd(-1,6), vz:rnd(-6,6),
+      life:rnd(.15,.4), s0:rnd(.2,.4), s1:.05,
+      r:1, g:.85, b:.4, a:1, grav:-20 });
+  if(s.hp === 5 && !s.burning){
+    s.burning = true;
+    showCaption(`«${s.name}» загорелся · добей его!`, 2.5);
+  }
+  if(s.hp <= 0){
+    s.sinking = true; s.sinkT = 0; s.speed = 0;
+    s.group.rotation.order = 'YXZ';
+    explosion(s.point.x, s.group.position.y + 3, s.point.z);
+    splash(s.point.x, waterY(s.point.x, s.point.z, game.simT), s.point.z, 40, 1.2);
+    boomSound();
+    showCaption(`«${s.name}» уничтожен`, 3);
+  }
 }
 
 export function makeSchooner(name){
@@ -116,7 +205,7 @@ export function makeSchooner(name){
   const flag = flagMesh(); flag.position.set(0, 19.6, 5.5); g.add(flag);
   const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.2,8,6), M.lamp);
   lamp.position.set(0,17.2,-2.5); g.add(lamp);
-  return makeShip(g, { len:24, width:5.5, draft:0.5, speed:rnd(3,5), colH:20,
+  return makeShip(g, { len:24, width:5.5, draft:0.5, speed:rnd(3,5), colH:20, name,
     label:`Двухмачтовая шхуна «${name}» · идёт под парусами`, flag });
 }
 
@@ -172,7 +261,7 @@ export function makeTrawler(name){
   }
   const flag = flagMesh(); flag.scale.setScalar(0.7); flag.position.set(0,11.5,6.8); g.add(flag);
   const smokeAnchor = new THREE.Object3D(); smokeAnchor.position.set(0,7.9,-11.5); g.add(smokeAnchor);
-  return makeShip(g, { len:30, width:7.5, draft:0.9, speed:rnd(4,6.5), colH:12.5,
+  return makeShip(g, { len:30, width:7.5, draft:0.9, speed:rnd(4,6.5), colH:12.5, name,
     label:`Рыболовецкий траулер «${name}»`, flag, smokeAnchor });
 }
 
@@ -197,7 +286,7 @@ export function makeBoat(name){
   eng.position.set(0,1.3,-4.4); g.add(eng);
   const flag = flagMesh(); flag.scale.setScalar(0.55); flag.position.set(0,3.0,-1.2); g.add(flag);
   const wakeAnchor = new THREE.Object3D(); wakeAnchor.position.set(0,0,-5.2); g.add(wakeAnchor);
-  return makeShip(g, { len:11, width:3.2, draft:0.35, speed:rnd(11,15), colH:4,
+  return makeShip(g, { len:11, width:3.2, draft:0.35, speed:rnd(11,15), colH:4, name,
     label:`Береговой катер «${name}» · 14 узлов`, flag, wakeAnchor, wiggle:true });
 }
 

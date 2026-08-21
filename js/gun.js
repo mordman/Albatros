@@ -9,6 +9,7 @@ import { waterY } from './environment.js';
 import { gunSound } from './audio.js';
 import { checkBuildingHit } from './buildings.js';
 import { pedWorldPos } from './pedestrians.js';
+import { damageShip } from './ships.js';
 
 const B_MAX = 48;
 const bullets = [];
@@ -62,15 +63,22 @@ function segDist2(ax,ay,az, bx,by,bz, px,py,pz){
   return dx*dx+dy*dy+dz*dz;
 }
 
+// человечек взрывается красными «осколками»
 function killPed(p, pos){
   p.dead = true; p.deadT = 0;
+  p.mesh.visible = false;
   kills++;
   if(elKills) elKills.textContent = kills;
-  for(let k=0;k<10;k++)
+  for(let k=0;k<14;k++)
     particles.spawn(pos.x, pos.y, pos.z, {
-      vx:rnd(-3,3), vy:rnd(1,5), vz:rnd(-3,3),
-      life:rnd(0.3,0.7), s0:rnd(0.25,0.45), s1:0.1,
-      r:0.62, g:0.12, b:0.12, a:0.85, grav:-10, drag:1.5 });
+      vx:rnd(-5,5), vy:rnd(2,10), vz:rnd(-5,5),
+      life:rnd(.3,.8), s0:rnd(.2,.4), s1:.08,
+      r:.62, g:.1, b:.1, a:.95, grav:-18, drag:.6 });
+  for(let k=0;k<5;k++)  // «кусочки» одежды
+    particles.spawn(pos.x, pos.y, pos.z, {
+      vx:rnd(-4,4), vy:rnd(3,8), vz:rnd(-4,4),
+      life:rnd(.5,1), s0:rnd(.35,.55), s1:.15,
+      r:.45, g:.35, b:.3, a:.9, grav:-22, drag:.5 });
 }
 
 export function updateGun(dt, t){
@@ -101,10 +109,27 @@ export function updateGun(dt, t){
       for(let k=0;k<4;k++)
         particles.spawn(b.pos.x, b.pos.y, b.pos.z, {
           vx:rnd(-6,6), vy:rnd(-2,6), vz:rnd(-6,6),
-          life:rnd(0.15,0.35), s0:rnd(0.2,0.35), s1:0.05,
+          life:rnd(.15,.35), s0:rnd(.2,.35), s1:.05,
           r:1, g:0.85, b:0.4, a:1, grav:-20 });
       killBullet(i); continue;
     }
+    // суда: -1 HP за попадание, 5 — пожар, 10 — взрыв
+    let hitShip = false;
+    for(const e of world.entities){
+      if(e.colType !== 'ship' || e.sinking) continue;
+      const dx = b.pos.x - e.point.x, dz = b.pos.z - e.point.z;
+      if(dx*dx + dz*dz > 900) continue;
+      if(b.pos.y > e.group.position.y + e.colH || b.pos.y < e.group.position.y - 3) continue;
+      const c = Math.cos(e.heading), sn = Math.sin(e.heading);
+      const lx = dx*c - dz*sn, lz = dx*sn + dz*c;
+      if(Math.abs(lx) < e.width/2 + 0.4 && Math.abs(lz) < e.len/2 + 0.4){
+        damageShip(e, b.pos.x, b.pos.y, b.pos.z);
+        killBullet(i);
+        hitShip = true;
+        break;
+      }
+    }
+    if(hitShip) continue;
     // пешеходы (проверка по отрезку prev→pos)
     let hit = false;
     for(const p of world.pedestrians){
