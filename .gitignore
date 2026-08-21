@@ -1,1 +1,1 @@
-(js/city.js, js/citykit.js, js/pedestrians.js, js/vehicles.js)
+(js/pedestrians.js, js/city.js, js/citykit.js, js/collisions.js, js/populate.js, js/world.js)
