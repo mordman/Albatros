@@ -119,12 +119,12 @@ export function makePedestrian(){
 export function makePedestrianGroup(city, count){
   const pedestrians = [];
   const cityCenter = { x: city.hx, z: city.hz };
-  const townY = city.topY - 30; // Approximate town level
+  const townY = city.topY - 30;
   
   for(let i = 0; i < count; i++){
     const ped = makePedestrian();
     const angle = rnd(0, Math.PI*2);
-    const radius = rnd(0, city.Rp * 0.7);
+    const radius = rnd(15, city.Rp * 0.85);
     ped.group.position.set(
       cityCenter.x + Math.cos(angle) * radius,
       townY,

@@ -18,7 +18,7 @@ export function makeBuilding(w, h, d, plainMat){
   const mesh = new THREE.Mesh(geo, [side, side, CITY_ROOF, CITY_ROOF, side, side]);
   mesh.position.y = h/2;
   g.add(mesh);
-  colBox(g, w, h, d, 0, h/2, 0);
+  g.userData.buildingBox = { cx:0, cy:h/2, cz:0, hw:w/2, hh:h/2, hd:d/2 };
   g.userData.isBuilding = true;
   return g;
 }
@@ -38,7 +38,7 @@ export function makeHouse(w, h, d){
   roof.position.y = h + rh/2 - 0.1; g.add(roof);
   const chim = new THREE.Mesh(new THREE.BoxGeometry(0.7,1.6,0.7), M.cream);
   chim.position.set(w*0.28, h + 0.7, d*0.2); g.add(chim);
-  colBox(g, w, h+rh, d, 0, (h+rh)/2, 0);
+  g.userData.buildingBox = { cx:0, cy:(h+rh)/2, cz:0, hw:w/2, hh:(h+rh)/2, hd:d/2 };
   g.userData.isHouse = true;
   return g;
 }
@@ -60,7 +60,7 @@ export function makeChurch(){
   crossV.position.set(0, 25.2, 8.5); g.add(crossV);
   const crossH = new THREE.Mesh(new THREE.BoxGeometry(1.2,0.22,0.22), M.dark);
   crossH.position.set(0, 25.6, 8.5); g.add(crossH);
-  colBox(g, 10, 28, 18, 0, 14, 0);
+  g.userData.buildingBox = { cx:0, cy:14, cz:0, hw:5, hh:14, hd:9 };
   g.userData.isChurch = true;
   return g;
 }
@@ -75,7 +75,7 @@ export function makeWaterTower(){
   const tank = new THREE.Mesh(new THREE.CylinderGeometry(2.6,2.6,3.4,14), M.steel);
   tank.position.y = 11.5; g.add(tank);
   const cap = hipRoof(5.4, 5.4, 1.8, M.roofTile); cap.position.y = 14.1; g.add(cap);
-  colBox(g, 6, 16, 6, 0, 8, 0);
+  g.userData.buildingBox = { cx:0, cy:8, cz:0, hw:3, hh:8, hd:3 };
   g.userData.isWaterTower = true;
   return g;
 }
@@ -143,7 +143,7 @@ export function makeWarehouse(){
   const roof = hipRoof(12, 18.2, 2.6, M.roofTar); roof.position.y = 6.8; g.add(roof);
   const door = new THREE.Mesh(new THREE.BoxGeometry(4.5, 3.6, 0.25), M.dark);
   door.position.set(0, 1.8, 8.6); g.add(door);
-  colBox(g, 11, 8, 17, 0, 4, 0);
+  g.userData.buildingBox = { cx:0, cy:4, cz:0, hw:6, hh:4, hd:9 };
   g.userData.isWarehouse = true;
   return g;
 }
@@ -163,7 +163,7 @@ export function makeCrane(){
   cable.position.set(0, 11.4, 10.4); g.add(cable);
   const hook = new THREE.Mesh(new THREE.BoxGeometry(0.7,0.5,0.7), M.red);
   hook.position.set(0, 7.6, 10.4); g.add(hook);
-  colBox(g, 4, 18, 14, 0, 9, 0);
+  g.userData.buildingBox = { cx:0, cy:9, cz:0, hw:2, hh:9, hd:7 };
   g.userData.isCrane = true;
   return g;
 }
@@ -178,7 +178,7 @@ export function makeContainerStack(matFn){
     c.rotation.y = (Math.random()-0.5)*0.1;
     g.add(c);
   }
-  colBox(g, 3, n*2.25+1, 7, 0, (n*2.25+1)/2, 0);
+  g.userData.buildingBox = { cx:0, cy:(n*2.25+1)/2, cz:0, hw:2, hh:(n*2.25+1)/2, hd:4 };
   g.userData.isContainerStack = true;
   return g;
 }
