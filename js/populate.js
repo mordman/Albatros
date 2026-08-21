@@ -9,6 +9,7 @@ import { makeWhale, makeFishSchool, makeJelly, makeTurtle, makeRay, makeCrab,
          makeWreck, makeWeedPatch, makeKelp, makeMegalodon } from './creatures.js';
 import { makeBalloon, makeBuoy, makeCloud } from './misc.js';
 import { makeArch } from './arch.js';
+import { makeWarship } from './warships.js';
 
 const names = a => { const s=[...a]; return ()=> s.length? s.splice(Math.floor(Math.random()*s.length),1)[0] : a[0]; };
 const nextShip = names(['Веста','Заря','Аврора','Морж','Селена','Бриз','Тайфун','Поллукс','Нептун','Чайка']);
@@ -16,6 +17,7 @@ const nextIsland = names(['остров Крайний','риф Тюлений',
 const nextBalloon = names(['Стрекоза','Зефир','Пассат','Ласточка','Аргонавт']);
 const nextCity = names(['Светлогорск','Старая Гавань','Новый Альбион','Китовая Гавань']);
 const nextWreck = names(['Левиафан','Мария','Атлант','Сирена']);
+const nextWar = names(['Грозный','Варяг','Стерегущий','Адмирал Ушаков']);
 
 {
   const s = makeSchooner(nextShip());
@@ -78,6 +80,14 @@ for(let i=0;i<5;i++){ const cr = makeCrab(); placeAhead(cr.point,250,600,2.8,wor
 for(let i=0;i<14;i++){ const wp = makeWeedPatch(); placeAhead(wp.point,250,750,2.8,world.islands); wp.group.position.y = seafloorY(wp.point.x, wp.point.z)+0.05; world.entities.push(wp); }
 for(let i=0;i<7;i++){ const kp = makeKelp(); placeAhead(kp.point,250,700,2.8,world.islands); kp.group.position.y = seafloorY(kp.point.x, kp.point.z); world.entities.push(kp); }
 world.entities.push(makeMegalodon());
+
+// боевые корабли с зенитками
+for(let i=0;i<2;i++){
+  const w = makeWarship(nextWar());
+  placeAhead(w.point, 1600, 2800, 2.6, world.islands);
+  w.heading = rnd(0,6.28);
+  world.entities.push(w);
+}
 
 world.arch = makeArch('Три Сестры');
 placeAhead(world.arch.point, 2000, 2600, 2.4, world.islands.filter(o=>!world.arch.virts.includes(o)));

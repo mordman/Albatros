@@ -1,6 +1,7 @@
-import { player, state, distToPlayer } from './state.js';
+import { player, state, game, distToPlayer } from './state.js';
 import { world } from './world.js';
 import { waterY } from './environment.js';
+import { clamp } from './config.js';
 
 const elSpd = document.getElementById('vSpd');
 const elAlt = document.getElementById('vAlt');
@@ -8,6 +9,7 @@ const elOdo = document.getElementById('vOdo');
 const elSt  = document.getElementById('status');
 const elCap = document.getElementById('caption');
 const elLAlt = document.getElementById('lAlt');
+const elHpFill = document.getElementById('hpFill');
 const cctx = document.getElementById('compass').getContext('2d');
 const CARD = {0:'С',45:'СВ',90:'В',135:'ЮВ',180:'Ю',225:'ЮЗ',270:'З',315:'СЗ'};
 
@@ -45,6 +47,13 @@ function drawCompass(){
   cctx.fillText(String(Math.round(heading)).padStart(3,'0')+'°', 300, 64);
 }
 
+function updateHPBar(){
+  if(!elHpFill) return;
+  const k = clamp(player.hp/player.hpMax, 0, 1);
+  elHpFill.style.width = (k*100)+'%';
+  elHpFill.style.background = k > 0.6 ? '#7ac74f' : k > 0.3 ? '#e8b13c' : '#e0533c';
+}
+
 export function updateHUD(dt, t){
   elSpd.textContent = Math.round(Math.abs(player.speed)*3.6);
   const subUnder = state.vehicle==='sub' && player.pos.y < waterY(player.pos.x, player.pos.z, t) - 1;
@@ -56,6 +65,7 @@ export function updateHUD(dt, t){
     elAlt.textContent = Math.max(0, Math.round(player.pos.y));
   }
   elOdo.textContent = (player.odometer/1000).toFixed(1);
+  updateHPBar();
   drawCompass();
   let txt = '';
   if(state.crashed) txt = 'АВАРИЯ';
@@ -76,7 +86,8 @@ export function updateHUD(dt, t){
       else txt = 'ПЛЯЖ';
       if(player.boost && Math.abs(player.speed) > 40) txt = 'ФОРСАЖ';
     } else {
-      if(player.pos.y - waterY(player.pos.x, player.pos.z, t) < 8) txt = 'БРЕЮЩИЙ ПОЛЁТ';
+      if(player.hp <= 5 && player.hp > 0) txt = 'ПОВРЕЖДЁН';
+      else if(player.pos.y - waterY(player.pos.x, player.pos.z, t) < 8) txt = 'БРЕЮЩИЙ ПОЛЁТ';
       else if(player.boost) txt = 'ФОРСАЖ';
     }
   }

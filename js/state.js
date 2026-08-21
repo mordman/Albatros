@@ -1,10 +1,12 @@
 import * as THREE from 'three';
+import { PLAYER_HP } from './config.js';
 
 export const player = {
   pos: new THREE.Vector3(0, 52, 0),
   yaw: 0, pitch: 0, bank: 0, steerVis: 0, vy: 0,
   speed: 30, odometer: 0, boost: false,
   onFloor:false, onRoad:false, airborne:false,
+  hp: PLAYER_HP.max, hpMax: PLAYER_HP.max,
 };
 export const state = { started:false, autopilot:true, paused:false, crashed:false, vehicle:'plane' };
 export const game = { simT:0, shake:0, slowT:0, respawnT:0, birdCD:0 };

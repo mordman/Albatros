@@ -10,6 +10,7 @@ import { gunSound } from './audio.js';
 import { checkBuildingHit } from './buildings.js';
 import { pedWorldPos } from './pedestrians.js';
 import { damageShip } from './ships.js';
+import { damageWarship } from './warships.js';
 
 const B_MAX = 48;
 const bullets = [];
@@ -35,7 +36,7 @@ function fireOne(){
   const cy = Math.cos(yaw), sy = Math.sin(yaw);
   const cp = Math.cos(pitch), sp = Math.sin(pitch);
   const side = (shot++ % 2) ? 1 : -1;
-  const lx = side*0.30, ly = 0.62, lz = 3.05;   // дуло в системе самолёта
+  const lx = side*0.30, ly = 0.62, lz = 3.05;
   b.pos.set(
     player.pos.x + lx*cy + lz*sy,
     player.pos.y + ly + lz*sp*0.6,
@@ -52,7 +53,6 @@ function fireOne(){
 
 function killBullet(i){ bullets[i].life = 0; tracers[i].visible = false; }
 
-// расстояние² от точки до отрезка a→b (защита от «прошивания» на скорости)
 function segDist2(ax,ay,az, bx,by,bz, px,py,pz){
   const abx=bx-ax, aby=by-ay, abz=bz-az;
   const apx=px-ax, apy=py-ay, apz=pz-az;
@@ -63,7 +63,6 @@ function segDist2(ax,ay,az, bx,by,bz, px,py,pz){
   return dx*dx+dy*dy+dz*dz;
 }
 
-// человечек взрывается красными «осколками»
 function killPed(p, pos){
   p.dead = true; p.deadT = 0;
   p.mesh.visible = false;
@@ -74,7 +73,7 @@ function killPed(p, pos){
       vx:rnd(-5,5), vy:rnd(2,10), vz:rnd(-5,5),
       life:rnd(.3,.8), s0:rnd(.2,.4), s1:.08,
       r:.62, g:.1, b:.1, a:.95, grav:-18, drag:.6 });
-  for(let k=0;k<5;k++)  // «кусочки» одежды
+  for(let k=0;k<5;k++)
     particles.spawn(pos.x, pos.y, pos.z, {
       vx:rnd(-4,4), vy:rnd(3,8), vz:rnd(-4,4),
       life:rnd(.5,1), s0:rnd(.35,.55), s1:.15,
@@ -98,13 +97,11 @@ export function updateGun(dt, t){
     b.prev.copy(b.pos);
     b.pos.addScaledVector(b.vel, dt);
     if(b.life <= 0){ killBullet(i); continue; }
-    // вода
     const wy = waterY(b.pos.x, b.pos.z, t);
     if(b.pos.y < wy){
       splash(b.pos.x, wy, b.pos.z, 2, 0.25);
       killBullet(i); continue;
     }
-    // здания — искры
     if(checkBuildingHit(b.pos.x, b.pos.y, b.pos.z, 0.15)){
       for(let k=0;k<4;k++)
         particles.spawn(b.pos.x, b.pos.y, b.pos.z, {
@@ -113,7 +110,24 @@ export function updateGun(dt, t){
           r:1, g:0.85, b:0.4, a:1, grav:-20 });
       killBullet(i); continue;
     }
-    // суда: -1 HP за попадание, 5 — пожар, 10 — взрыв
+    // боевые корабли (прочность 100)
+    let hitBig = false;
+    for(const e of world.entities){
+      if(e.colType !== 'warship' || e.sinking) continue;
+      const dx = b.pos.x - e.point.x, dz = b.pos.z - e.point.z;
+      if(dx*dx + dz*dz > 10000) continue;
+      if(b.pos.y > e.group.position.y + e.colH || b.pos.y < e.group.position.y - 3) continue;
+      const c = Math.cos(e.heading), sn = Math.sin(e.heading);
+      const lx = dx*c - dz*sn, lz = dx*sn + dz*c;
+      if(Math.abs(lx) < e.width/2 + 0.4 && Math.abs(lz) < e.len/2 + 0.4){
+        damageWarship(e, b.pos.x, b.pos.y, b.pos.z);
+        killBullet(i);
+        hitBig = true;
+        break;
+      }
+    }
+    if(hitBig) continue;
+    // гражданские суда
     let hitShip = false;
     for(const e of world.entities){
       if(e.colType !== 'ship' || e.sinking) continue;
@@ -130,7 +144,7 @@ export function updateGun(dt, t){
       }
     }
     if(hitShip) continue;
-    // пешеходы (проверка по отрезку prev→pos)
+    // пешеходы
     let hit = false;
     for(const p of world.pedestrians){
       if(p.dead) continue;

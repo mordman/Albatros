@@ -64,6 +64,36 @@ export function gunSound(){
   src.start();
 }
 
+// далёкий выстрел зенитки
+export function flakSound(){
+  if(!audio) return;
+  const ctx = audio.ctx;
+  const len = Math.floor(ctx.sampleRate*0.07);
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i] = (Math.random()*2-1)*Math.pow(1-i/len, 2)*0.6;
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 300;
+  const g = ctx.createGain(); g.gain.value = 0.12;
+  src.connect(f); f.connect(g); g.connect(ctx.destination);
+  src.start();
+}
+
+// попадание в игрока
+export function hitSound(){
+  if(!audio) return;
+  const ctx = audio.ctx;
+  const len = Math.floor(ctx.sampleRate*0.14);
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i] = (Math.random()*2-1)*Math.pow(1-i/len, 1.8);
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 480; f.Q.value = 0.7;
+  const g = ctx.createGain(); g.gain.value = 0.55;
+  src.connect(f); f.connect(g); g.connect(ctx.destination);
+  src.start();
+}
+
 export function updateAudio(camUnder){
   if(!audio) return;
   const on = audioOn && !state.paused;

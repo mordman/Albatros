@@ -89,6 +89,7 @@ export function respawn(){
   state.crashed = false;
   respawnVehicle();
   applyVehicleVisibility();
+  player.hp = player.hpMax;   // прочность восстанавливается
   if(state.vehicle === 'moto'){
     const sp = archSpawn();
     player.pos.set(sp.x, sp.h + 0.5, sp.z);
@@ -121,12 +122,11 @@ export function respawn(){
 }
 
 function islandCollision(P, PR){
-  if(state.vehicle === 'moto') return null; // мото ездит по groundAt
+  if(state.vehicle === 'moto') return null;
   for(const isl of world.islands){
     if(isl.colType === 'city'){
       if(distToPlayer(isl.point) < isl.R*0.95 && P.y < 7)
         return state.vehicle==='sub' ? 'врезался в основание порта' : 'сел на мель';
-      // склон под городом твёрдый, но между домами летать можно
       const hx = P.x - (isl.point.x + isl.hx), hz = P.z - (isl.point.z + isl.hz);
       if(P.y > 3 && Math.hypot(hx,hz) < isl.Rp*0.85 && P.y < isl.townY - 2)
         return 'врезался в склон города';
@@ -156,14 +156,16 @@ export function checkCollisions(t){
     return crash('врезался в здание');
   for(const e of world.entities){
     switch(e.colType){
-      case 'ship':{
+      case 'ship':
+      case 'warship':{
         const dx = P.x - e.point.x, dz = P.z - e.point.z;
-        if(dx*dx + dz*dz > 900) break;
+        const far = e.colType==='warship' ? 10000 : 900;
+        if(dx*dx + dz*dz > far) break;
         const c = Math.cos(e.heading), s = Math.sin(e.heading);
         const lx = dx*c - dz*s, lz = dx*s + dz*c;
         if(Math.abs(lx) < e.width/2 + PR && Math.abs(lz) < e.len/2 + PR &&
            P.y < e.group.position.y + e.colH && P.y > e.group.position.y - 3)
-          return crash('столкновение с судном');
+          return crash(e.colType==='warship' ? 'таранил боевой корабль' : 'столкновение с судном');
         break;
       }
       case 'wreck':{

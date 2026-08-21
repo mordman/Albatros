@@ -15,6 +15,7 @@ import { updateHUD, updateCaptions, showCaption } from './hud.js';
 import { initAudio, updateAudio, toggleAudioBtn } from './audio.js';
 import { archSpawn } from './arch.js';
 import { updateGun } from './gun.js';
+import { updateFlak } from './flak.js';
 import { updatePedestrians } from './pedestrians.js';
 
 /* ===== МЕНЮ / КНОПКИ ===== */
@@ -69,8 +70,7 @@ btnPause.addEventListener('click', ()=> togglePause());
 let debugCols = false;
 addEventListener('keydown', e=>{
   keys[e.code] = true;
-  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
-  if(e.code === 'Space') e.preventDefault(); // чтобы страница не скроллилась при стрельбе
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
   if(e.code === 'Escape' && state.started) togglePause();
   if(e.code === 'KeyB'){ debugCols = !debugCols; setDebugCols(debugCols); }
   if(e.code === 'KeyV') switchVehicle();
@@ -103,6 +103,7 @@ function animate(){
   updatePlayer(dt, game.simT);
   updatePedestrians(dt);
   updateGun(dt, game.simT);
+  updateFlak(dt, game.simT);
   for(const e of world.entities) e.update(dt, game.simT);
   particles.update(dt);
   updateDebris(dt, game.simT);
@@ -112,7 +113,6 @@ function animate(){
     if(game.respawnT <= 0) respawn();
   }
 
-  // надводный/подводный режим
   camUnder = camera.position.y < waterY(camera.position.x, camera.position.z, game.simT) - 0.25;
   scene.fog.color.copy(camUnder ? UNDER_C : FOG_C);
   scene.fog.density = camUnder ? UNDER_D : FOG_D;
@@ -120,14 +120,12 @@ function animate(){
   renderer.setClearColor(camUnder ? UNDER_C : FOG_C);
   sky.visible = !camUnder;
 
-  // прожекторы батискафа
   const deep = state.vehicle==='sub' && !state.crashed && player.pos.y < -10;
   const sInt = deep ? 140 : 0;
   SG.spots.forEach(s=>{ s.intensity = sInt; });
   SG.cones.forEach(c=>{ c.visible = deep; });
   SG.lenses.forEach(l=>{ l.material.emissiveIntensity = deep ? 2.2 : 0.4; });
 
-  // «морской снег»
   if(state.vehicle==='sub' && !state.crashed && player.pos.y < -6){
     snowT -= dt;
     if(snowT <= 0){

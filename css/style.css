@@ -16,7 +16,10 @@ mask-image:linear-gradient(90deg,transparent,#000 18%,#000 82%,transparent)}
 .dl{display:block;font-size:9px;letter-spacing:.3em;color:var(--dim);margin-bottom:6px}
 .dv{font-size:27px;font-weight:600;line-height:1;color:var(--cream)}
 .dv i{font-style:normal;font-size:11px;font-weight:400;color:var(--dim);margin-left:5px}
-#status{position:absolute;left:28px;bottom:110px;font-size:10px;letter-spacing:.34em;color:var(--accent);opacity:0;transition:opacity .35s}
+#hpbar{position:absolute;left:28px;bottom:92px;width:230px}
+#hpTrack{height:9px;border:1px solid var(--line);border-radius:5px;background:rgba(13,22,30,.55);overflow:hidden;margin-top:4px}
+#hpFill{height:100%;width:100%;background:#7ac74f;border-radius:4px;transition:width .25s,background .4s}
+#status{position:absolute;left:28px;bottom:130px;font-size:10px;letter-spacing:.34em;color:var(--accent);opacity:0;transition:opacity .35s}
 #status.on{opacity:1}
 #caption{position:absolute;left:50%;bottom:92px;transform:translateX(-50%);font-size:11px;letter-spacing:.22em;text-transform:uppercase;white-space:nowrap;color:var(--cream);opacity:0;transition:opacity .45s;text-shadow:0 1px 8px rgba(10,16,24,.8)}
 #caption.show{opacity:.92}
