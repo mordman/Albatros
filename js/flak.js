@@ -99,6 +99,14 @@ export function updateFlak(dt, t){
     const dist = e.group.position.distanceTo(player.pos);
     const canFire = planeTarget
       && dist < WARSHIP.range && dist > WARSHIP.minRange;
+    // титр при первом открытии огня — чтобы встреча была заметна
+    if(canFire && !e.alerted){
+      e.alerted = true;
+      showCaption(`Эсминец «${e.name}» открывает зенитный огонь!`, 3);
+    }
+    if(!canFire && e.alerted && dist > WARSHIP.range*1.4){
+      e.alerted = false;
+    }
     for(const m of e.mounts){
       if(canFire){
         m.turret.lookAt(player.pos.x, player.pos.y + 1, player.pos.z);

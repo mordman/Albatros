@@ -81,10 +81,18 @@ for(let i=0;i<14;i++){ const wp = makeWeedPatch(); placeAhead(wp.point,250,750,2
 for(let i=0;i<7;i++){ const kp = makeKelp(); placeAhead(kp.point,250,700,2.8,world.islands); kp.group.position.y = seafloorY(kp.point.x, kp.point.z); world.entities.push(kp); }
 world.entities.push(makeMegalodon());
 
-// боевые корабли с зенитками
+// боевые корабли с зенитками:
+// первый — гарантированно на стартовом курсе (старт (0,0) -> +Z), чтобы встреча случилась сразу
+{
+  const w = makeWarship(nextWar());
+  w.point.set(520, 0, 1350);
+  w.heading = 2.6;
+  world.entities.push(w);
+}
+// ещё два бродят по мору и рециклятся впереди игрока
 for(let i=0;i<2;i++){
   const w = makeWarship(nextWar());
-  placeAhead(w.point, 1600, 2800, 2.6, world.islands);
+  placeAhead(w.point, 1400, 2600, 2.4, world.islands);
   w.heading = rnd(0,6.28);
   world.entities.push(w);
 }

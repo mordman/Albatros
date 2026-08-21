@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { scene } from './engine.js';
 import { WIND, WARSHIP, rnd, clamp } from './config.js';
 import { mat } from './materials.js';
-import { makeHull, strutBetween, colBox } from './helpers.js';
+import { makeHull, colBox } from './helpers.js';
 import { waterY } from './environment.js';
 import { particles, explosion, splash, bubbles } from './particles.js';
 import { world } from './world.js';
@@ -43,7 +43,7 @@ export function makeWarship(name){
   const deck = new THREE.Mesh(new THREE.BoxGeometry(W*0.62, 0.4, L*0.78), warDeck);
   deck.position.y = 5.4; g.add(deck);
 
-  // башни главного калира — нос и корма
+  // башни главного калибра — нос и корма
   const bow = makeTurret(true); bow.position.set(0, 5.4, L*0.30); g.add(bow);
   const stern = makeTurret(true); stern.position.set(0, 5.4, -L*0.30); stern.rotation.y = Math.PI; g.add(stern);
 
@@ -84,7 +84,7 @@ export function makeWarship(name){
     tt.rotation.z = Math.PI/2; tt.rotation.y = s*0.5;
     tt.position.set(s*3.6, 5.9, -18); g.add(tt);
   }
-  // якорная цепь / детали носа
+  // шпиль на носу
   const capstan = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.9, 1.2, 10), warDark);
   capstan.position.set(0, 6.1, L*0.36); g.add(capstan);
 
@@ -113,14 +113,26 @@ export function makeWarship(name){
   const dmgAnchor = new THREE.Object3D();
   dmgAnchor.position.set(0, 12, 0); g.add(dmgAnchor);
 
+  // ВАЖНО: speed обязателен — без него позиция становилась NaN и корабль исчезал
   const s = { group:g, point:g.position, colType:'warship', name,
-    hp: WARSHIP.hp, heading: rnd(0,Math.PI*2), turn: rnd(-0.008,0.008),
+    hp: WARSHIP.hp,
+    heading: rnd(0,Math.PI*2), turn: rnd(-0.008,0.008),
+    speed: rnd(WARSHIP.speed[0], WARSHIP.speed[1]),
+    draft: 1.2,
     rx:0, rz:0, len:L, width:W, colH:WARSHIP.colH,
     capR: 700, recycleAt: 4600, mounts,
     smoking:false, burning:false, sinking:false, sinkT:0, dmgT:0, smT:0,
     label: ()=> `Эсминец «${name}» · прочность ${Math.max(0, Math.round(100*s.hp/WARSHIP.hp))}%` };
 
+  function group_set(g, y, s){
+    g.position.y = y;
+    g.rotation.order = 'YXZ';
+    g.rotation.set(s.rx, s.heading, s.rz);
+  }
+
   s.update = (dt,t)=>{
+
+    /* === корабль тонет === */
     if(s.sinking){
       s.sinkT += dt;
       g.position.y -= (0.25 + s.sinkT*0.05)*dt;
@@ -149,17 +161,18 @@ export function makeWarship(name){
         s.sinking = false; s.hp = WARSHIP.hp;
         s.smoking = false; s.burning = false; s.sinkT = 0;
         s.rx = 0; s.rz = 0; g.rotation.set(0, s.heading, 0);
+        s.speed = rnd(WARSHIP.speed[0], WARSHIP.speed[1]);
         placeAhead(s.point, 1600, 3000, 2.6, world.islands);
       }
       return;
     }
 
-    // ход и качка
+    /* === обычный ход === */
     s.heading += s.turn*dt;
     const x = s.point.x + Math.sin(s.heading)*s.speed*dt;
     const z = s.point.z + Math.cos(s.heading)*s.speed*dt;
     s.point.set(x, 0, z);
-    const y = waterY(x,z,t) + 2.4;
+    const y = waterY(x,z,t) + s.draft;
     const fx=Math.sin(s.heading), fz=Math.cos(s.heading);
     const rx_=Math.atan2(
       waterY(x-fx*s.len*0.38, z-fz*s.len*0.38, t) - waterY(x+fx*s.len*0.38, z+fz*s.len*0.38, t), s.len*0.76);
@@ -200,12 +213,6 @@ export function makeWarship(name){
       s.hp = WARSHIP.hp; s.smoking = false; s.burning = false;
     }
   };
-
-  function group_set(g, y, s){
-    g.position.y = y;
-    g.rotation.order = 'YXZ';
-    g.rotation.set(s.rx, s.heading, s.rz);
-  }
 
   return s;
 }
