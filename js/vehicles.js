@@ -4,18 +4,20 @@ import { clamp, BOAT, SUB, MOTO } from './config.js';
 import { player, state, game } from './state.js';
 import { M, mat } from './materials.js';
 import { makeHull, strutBetween, wingGeo, colBox } from './helpers.js';
-import { particles, splash, bubbles } from './particles.js';
+import { particles, splash, bubbles, bulletTracer } from './particles.js';
 import { waterY } from './environment.js';
 import { seafloorY } from './seafloor.js';
 import { groundAt, archSpawn, ensureArchNear } from './arch.js';
 import { crash, crashPos } from './collisions.js';
 import { captionNow } from './hud.js';
+import { world } from './world.js';
 
 const tmpV = new THREE.Vector3();
 const tmpV2 = new THREE.Vector3();
 const camTarget = new THREE.Vector3();
 const fwd = new THREE.Vector3();
 let sprayT = 0, siltT = 0, bubT2 = 0, wakeT2 = 0, dustT = 0;
+let lastShotTime = 0;
 
 /* ===== ГИДРОПЛАН «ЧАЙКА-07» ===== */
 export const planeG = new THREE.Group();
@@ -519,11 +521,12 @@ export function updatePlayer(dt, t){
 }
 
 function updatePlane(dt, t){
-  let steer = 0, lift = 0, boost = false;
+  let steer = 0, lift = 0, boost = false, fire = false;
   if(!state.autopilot){
     steer = ((keys.KeyA||keys.ArrowLeft)?1:0) - ((keys.KeyD||keys.ArrowRight)?1:0);
     lift  = ((keys.KeyW||keys.ArrowUp)?1:0) - ((keys.KeyS||keys.ArrowDown)?1:0);
     boost = !!(keys.ShiftLeft||keys.ShiftRight);
+    fire  = !!(keys.Space || keys.MouseLeft);
   } else {
     steer = 0.18;
     player.pitch = Math.sin(t*0.3)*0.06;
@@ -544,6 +547,46 @@ function updatePlane(dt, t){
   player.pos.z += Math.cos(player.yaw)*Math.cos(player.pitch)*v*dt;
   player.pos.y += player.pitch*v*dt;
   player.odometer += v*dt;
+  
+  // Shooting logic
+  if(fire && t - lastShotTime > 0.12){
+    lastShotTime = t;
+    // Calculate bullet start position (from plane nose)
+    const muzzleOffset = new THREE.Vector3(0, 0, 4.5);
+    muzzleOffset.applyAxisAngle(new THREE.Vector3(1,0,0), -player.pitch);
+    muzzleOffset.applyAxisAngle(new THREE.Vector3(0,1,0), player.yaw);
+    const bulletX = player.pos.x + muzzleOffset.x;
+    const bulletY = player.pos.y + muzzleOffset.y;
+    const bulletZ = player.pos.z + muzzleOffset.z;
+    
+    // Bullet velocity = plane direction + speed bonus
+    const bulletSpeed = 180;
+    const bvx = Math.sin(player.yaw)*Math.cos(player.pitch)*bulletSpeed;
+    const bvy = Math.sin(player.pitch)*bulletSpeed * 0.3;
+    const bvz = Math.cos(player.yaw)*Math.cos(player.pitch)*bulletSpeed;
+    
+    // Create tracer
+    bulletTracer(bulletX, bulletY, bulletZ, bvx*0.05, bvy*0.05, bvz*0.05);
+    
+    // Check hits on pedestrians
+    for(const e of world.entities || []){
+      if(e.colType === 'pedestrian' && e.alive !== false && e.hit){
+        // Simple hit check along bullet path
+        const dx = e.point.x - bulletX;
+        const dy = (e.point.y + 0.9) - bulletY;
+        const dz = e.point.z - bulletZ;
+        const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        if(dist < 8){
+          // Check if pedestrian is in front of the bullet
+          const dot = (dx*bvx + dy*bvy + dz*bvz) / (dist * bulletSpeed);
+          if(dot > 0.7){
+            e.hit(new THREE.Vector3(bulletX, bulletY, bulletZ), new THREE.Vector3(bvx, bvy, bvz).normalize().multiplyScalar(15));
+          }
+        }
+      }
+    }
+  }
+  
   const surf = waterY(player.pos.x, player.pos.z, t) + 1.3;
   if(player.pos.y < surf && player.pitch < -0.38 && state.started){
     player.pos.y = surf;
