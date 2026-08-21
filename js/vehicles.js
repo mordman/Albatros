@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { scene, camera } from './engine.js';
-import { clamp, BOAT, SUB, MOTO } from './config.js';
+import { clamp, BOAT, SUB, MOTO, rnd } from './config.js';
 import { player, state, game } from './state.js';
 import { M, mat } from './materials.js';
 import { makeHull, strutBetween, wingGeo, colBox } from './helpers.js';
@@ -15,6 +15,7 @@ const tmpV = new THREE.Vector3();
 const tmpV2 = new THREE.Vector3();
 const camTarget = new THREE.Vector3();
 const fwd = new THREE.Vector3();
+const rnd2 = (a,b)=> a + Math.random()*(b-a);
 let sprayT = 0, siltT = 0, bubT2 = 0, wakeT2 = 0, dustT = 0;
 
 /* ===== ГИДРОПЛАН «ЧАЙКА-07» ===== */
@@ -652,7 +653,6 @@ function updateBoat(dt, t){
   camera.fov += (tFov - camera.fov)*Math.min(1, dt*3);
   camera.updateProjectionMatrix();
 }
-const rnd2 = (a,b)=> a + Math.random()*(b-a);
 
 function updateSub(dt, t){
   let steer = 0, lift = 0, boost = false;
@@ -783,6 +783,7 @@ function updateMoto(dt, t){
     const slope = gA ? Math.atan2(gA.h - gnd.h, 2.4) : 0;
     const tPitch = slope*0.9 - (thr>0 ? 0.05 : 0)*spd01 + (thr<0 ? 0.04 : 0)*spd01;
     player.pitch += (tPitch - player.pitch)*Math.min(1, dt*7);
+    player.bank += (-player.bank)*Math.min(1, dt*2);
     if(Math.abs(player.speed) > 6){
       dustT -= dt;
       if(dustT <= 0){
